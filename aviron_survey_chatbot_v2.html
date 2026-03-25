@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aviron Survey Intel — Ask the Data</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:   #0d1b2a;
+    --navy2:  #162536;
+    --navy3:  #1e3248;
+    --blue:   #2a6fdb;
+    --blue2:  #3d8ef5;
+    --accent: #f0c429;
+    --white:  #f7f9fc;
+    --muted:  #8fa3b8;
+    --border: rgba(255,255,255,0.08);
+    --bubble-user: #2a6fdb;
+    --bubble-ai:   #1e3248;
+    --font-display: 'DM Serif Display', Georgia, serif;
+    --font-body:    'DM Sans', system-ui, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--navy);
+    color: var(--white);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ── Password Gate ── */
+  #gate {
+    position: fixed;
+    inset: 0;
+    background: var(--navy);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    padding: 24px;
+  }
+  .gate-card {
+    background: var(--navy2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+  }
+  .gate-logo {
+    width: 56px; height: 56px;
+    background: var(--accent);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-size: 28px;
+    color: var(--navy);
+    margin: 0 auto 20px;
+  }
+  .gate-card h2 {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 400;
+    margin-bottom: 6px;
+  }
+  .gate-card p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 28px;
+  }
+  .gate-input-wrap {
+    position: relative;
+    margin-bottom: 14px;
+  }
+  #gate-input {
+    width: 100%;
+    background: var(--navy3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 46px 13px 16px;
+    color: var(--white);
+    font-family: var(--font-body);
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+    text-align: center;
+    letter-spacing: 2px;
+  }
+  #gate-input:focus { border-color: rgba(42,111,219,0.6); }
+  #gate-input::placeholder { letter-spacing: 0; color: var(--muted); }
+  #toggle-pw {
+    position: absolute;
+    right: 14px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    color: var(--muted); cursor: pointer;
+    font-size: 16px; padding: 4px;
+  }
+  #gate-btn {
+    width: 100%;
+    background: var(--blue);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  #gate-btn:hover  { background: var(--blue2); }
+  #gate-btn:active { transform: scale(0.98); }
+  #gate-error {
+    font-size: 13px;
+    color: #ff6b6b;
+    margin-top: 10px;
+    min-height: 18px;
+    transition: opacity 0.2s;
+  }
+  .gate-hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 20px;
+    opacity: 0.6;
+  }
+
+  /* ── App (hidden until unlocked) ── */
+  #app {
+    display: none;
+    flex-direction: column;
+    height: 100vh;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  #app.visible { display: flex; }
+
+  /* ── Header ── */
+  header {
+    padding: 20px 28px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+  .logo-mark {
+    width: 40px; height: 40px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-size: 20px;
+    color: var(--navy);
+    flex-shrink: 0;
+  }
+  .header-text h1 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 400;
+    letter-spacing: -0.3px;
+  }
+  .header-text p {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 300;
+  }
+  .badge {
+    margin-left: auto;
+    background: rgba(240,196,41,0.12);
+    border: 1px solid rgba(240,196,41,0.3);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* ── Chat area ── */
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    scroll-behavior: smooth;
+  }
+  #chat::-webkit-scrollbar { width: 5px; }
+  #chat::-webkit-scrollbar-thumb { background: var(--navy3); border-radius: 3px; }
+
+  /* ── Messages ── */
+  .msg {
+    display: flex;
+    gap: 12px;
+    animation: fadeUp 0.25s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .msg.user { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  .avatar.ai   { background: var(--accent); color: var(--navy); font-family: var(--font-display); }
+  .avatar.user { background: var(--blue);   color: white; font-size: 12px; }
+
+  .bubble {
+    max-width: 78%;
+    padding: 13px 17px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .msg.ai   .bubble {
+    background: var(--bubble-ai);
+    border-radius: 4px 16px 16px 16px;
+    border: 1px solid var(--border);
+  }
+  .msg.user .bubble {
+    background: var(--bubble-user);
+    border-radius: 16px 4px 16px 16px;
+  }
+
+  .bubble strong { color: var(--accent); font-weight: 600; }
+  .bubble em     { color: #a8c8f0; font-style: italic; }
+  .bubble code   { background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 4px; font-size: 12px; font-family: monospace; }
+  .bubble ul, .bubble ol { padding-left: 18px; margin: 6px 0; }
+  .bubble li { margin: 3px 0; }
+  .bubble h3 { font-size: 14px; font-weight: 600; color: var(--accent); margin: 10px 0 4px; }
+  .bubble p  { margin: 6px 0; }
+  .bubble p:first-child { margin-top: 0; }
+  .bubble p:last-child  { margin-bottom: 0; }
+
+  /* Thinking */
+  .dots { display: flex; gap: 5px; align-items: center; }
+  .dots span {
+    width: 7px; height: 7px;
+    background: var(--muted);
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+  .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%,60%,100% { transform: translateY(0);    opacity: 0.4; }
+    30%          { transform: translateY(-5px); opacity: 1;   }
+  }
+
+  /* ── Suggested prompts ── */
+  #suggestions {
+    padding: 0 28px 12px;
+    flex-shrink: 0;
+  }
+  #suggestions p {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 13px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.18s;
+    font-family: var(--font-body);
+  }
+  .chip:hover {
+    background: rgba(42,111,219,0.2);
+    border-color: rgba(42,111,219,0.5);
+    color: var(--white);
+  }
+
+  /* ── Input bar ── */
+  #input-area {
+    padding: 12px 28px 20px;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+  }
+  .input-row {
+    display: flex;
+    gap: 10px;
+    background: var(--navy3);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 8px 8px 8px 16px;
+    transition: border-color 0.2s;
+  }
+  .input-row:focus-within { border-color: rgba(42,111,219,0.6); }
+  #msg-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--white);
+    font-family: var(--font-body);
+    font-size: 14px;
+    resize: none;
+    max-height: 120px;
+    min-height: 24px;
+    line-height: 1.5;
+    padding: 3px 0;
+  }
+  #msg-input::placeholder { color: var(--muted); }
+  #send-btn {
+    background: var(--blue);
+    border: none;
+    border-radius: 10px;
+    width: 38px; height: 38px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s, transform 0.1s;
+    align-self: flex-end;
+  }
+  #send-btn:hover:not(:disabled) { background: var(--blue2); }
+  #send-btn:active { transform: scale(0.94); }
+  #send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  #send-btn svg { width: 16px; height: 16px; fill: white; }
+  .hint { font-size: 11px; color: var(--muted); text-align: center; margin-top: 8px; opacity: 0.7; }
+
+  /* ── Welcome card ── */
+  .welcome {
+    background: var(--navy2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 8px 0;
+  }
+  .welcome h2 { font-family: var(--font-display); font-size: 22px; font-weight: 400; margin-bottom: 8px; }
+  .welcome h2 em { color: var(--accent); font-style: italic; }
+  .welcome p { color: var(--muted); font-size: 13px; line-height: 1.7; }
+  .stats-row { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .stat {
+    background: rgba(240,196,41,0.08);
+    border: 1px solid rgba(240,196,41,0.2);
+    border-radius: 10px;
+    padding: 10px 14px;
+    flex: 1;
+    min-width: 110px;
+  }
+  .stat-n { font-family: var(--font-display); font-size: 22px; color: var(--accent); }
+  .stat-l { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .error-bubble {
+    background: rgba(220,50,50,0.15);
+    border: 1px solid rgba(220,50,50,0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #ff8080;
+  }
+
+  /* ── Shake animation for wrong password ── */
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%      { transform: translateX(-8px); }
+    40%      { transform: translateX(8px); }
+    60%      { transform: translateX(-6px); }
+    80%      { transform: translateX(6px); }
+  }
+  .shake { animation: shake 0.4s ease; }
+</style>
+</head>
+<body>
+
+<!-- Survey data -->
+<script type="application/json" id="survey-json">
+{"meta":{"title":"Aviron Product Survey \u2014 February 2026","total_responses":730,"export_date":"2026-03-25"},"Q1_age":{"45-54":{"n":202,"pct":27.7},"35-44":{"n":196,"pct":26.8},"55-64":{"n":189,"pct":25.9},"65-74":{"n":73,"pct":10.0},"25-34":{"n":47,"pct":6.4},"75+":{"n":14,"pct":1.9},"18-24":{"n":9,"pct":1.2}},"Q2_gender":{"Male":{"n":391,"pct":53.6},"Female":{"n":336,"pct":46.0},"Prefer not to say":{"n":2,"pct":0.3},"Other":{"n":1,"pct":0.1}},"Q3_marital":{"Married":{"n":562,"pct":77.0},"Unmarried":{"n":89,"pct":12.2},"Divorced / Separated":{"n":37,"pct":5.1},"Prefer not to say":{"n":9,"pct":1.2},"Common Law":{"n":19,"pct":2.6},"Widowed":{"n":14,"pct":1.9}},"Q4_parent":{"Yes":{"n":496,"pct":67.9},"No":{"n":223,"pct":30.5},"Prefer not to say":{"n":11,"pct":1.5}},"Q5_income":{"$200,000+":{"n":210,"pct":28.8},"Prefer not to say":{"n":145,"pct":19.9},"$100,000 - $124,999":{"n":100,"pct":13.7},"$150,000 - $174,999":{"n":67,"pct":9.2},"$125,000 - $149,999":{"n":59,"pct":8.1},"$75,000 - $99,999":{"n":50,"pct":6.8},"$175,000 - $199,999":{"n":43,"pct":5.9},"$50,000 - $74,999":{"n":34,"pct":4.7},"< $50,000":{"n":22,"pct":3.0}},"Q6_ownership":{"I own one Aviron machine and would consider adding another":{"n":361,"pct":49.5},"I own one Aviron machine and would NOT consider adding another":{"n":284,"pct":38.9},"I own multiple Aviron machines and would consider adding another":{"n":65,"pct":8.9},"I own multiple Aviron machines and would NOT consider adding another":{"n":20,"pct":2.7}},"Q7_purchase_driver":{"The workout content. I liked the type of workouts it would allow me to do (games, classes, streaming etc.)":{"n":337,"pct":46.2},"Slightly more software, but hardware is still very important":{"n":106,"pct":14.5},"The machine itself. I liked the hardware (specs, build quality, warranty, weight limit etc. )":{"n":175,"pct":24.0},"Slightly more hardware, but software is still very important":{"n":72,"pct":9.9},"None of the above":{"n":40,"pct":5.5}},"Q8_recommend":{"Yes!":{"n":646,"pct":88.5},"No, I'm not happy enough with Aviron to recommend it":{"n":58,"pct":7.9},"My friends / family aren't interested in fitness":{"n":26,"pct":3.6}},"Q9_weight_loss":{"Yes!":{"n":299,"pct":41.0},"Yes, but only a couple pounds / not much":{"n":146,"pct":20.0},"No, my goal was never to lose weight":{"n":146,"pct":20.0},"Unfortunately, no":{"n":98,"pct":13.4},"Yes, but i gained it back":{"n":41,"pct":5.6}},"Q10_brand_standout":{"The website had more information and answered all my questions clearly":{"n":225,"pct":30.8},"Friendly customer service / real people answering my questions":{"n":183,"pct":25.1},"Approachable feeling that didn't make me feel intimidated":{"n":127,"pct":17.4},"other":{"n":110,"pct":15.1},"Aviron's company / brand (beyond the product offering) did NOT stand out to me":{"n":85,"pct":11.6}},"Q11_science_backed":{"Yes, I do like that":{"n":512,"pct":70.1},"I didn't know that Aviron did that":{"n":138,"pct":18.9},"It doesn't matter to me":{"n":73,"pct":10.0},"other":{"n":7,"pct":1.0}},"Q12_fitness_leader":{"True":{"n":564,"pct":77.3},"I don't understand the context of this statement":{"n":107,"pct":14.7},"False":{"n":59,"pct":8.1}},"Q13_tagline":{"True":{"n":600,"pct":82.2},"I've never heard / seen this tagline":{"n":87,"pct":11.9},"False":{"n":43,"pct":5.9}},"Q14_glp1":{"I'm not interested, not for me":{"n":383,"pct":52.5},"I don't know what a GLP-1 is":{"n":123,"pct":16.8},"I'm currently on a GLP-1":{"n":100,"pct":13.7},"I'm interested and considering":{"n":92,"pct":12.6},"other":{"n":32,"pct":4.4}},"Q15_products":{"Strong Rower":{"n":480,"pct":65.8},"Impact Rower (foldable)":{"n":146,"pct":20.0},"Fit Bike":{"n":62,"pct":8.5},"Victory Treadmill":{"n":61,"pct":8.4},"Strong GO Rower (iPad)":{"n":56,"pct":7.7},"Abs Hero (plank)":{"n":36,"pct":4.9}},"Q16_usage_duration":{"1-2 years":{"n":233,"pct":31.9},"More than 2 years":{"n":222,"pct":30.4},"Less than 3 months":{"n":126,"pct":17.3},"6-11 months":{"n":81,"pct":11.1},"3\u20135 months":{"n":68,"pct":9.3}},"Q17_usage_frequency":{"2\u20133 times per week":{"n":300,"pct":41.1},"4\u20135 times per week":{"n":190,"pct":26.0},"Once a week":{"n":88,"pct":12.1},"Every day":{"n":76,"pct":10.4},"I don't use it or rarely":{"n":43,"pct":5.9},"Once a month":{"n":33,"pct":4.5}},"Q18_membership":{"Yes":{"n":623,"pct":85.3},"No":{"n":107,"pct":14.7}},"Q19_no_membership_reasons":{"base_n":107,"choices":{"Dont use often enough":{"n":15,"pct":14.0},"Taking temporary break":{"n":8,"pct":7.5},"Free features enough":{"n":40,"pct":37.4},"Only use small portion":{"n":23,"pct":21.5},"Tried and no value":{"n":24,"pct":22.4},"Other":{"n":31,"pct":29.0}}},"Q20_2025_updates_rating":{"mean":3.89,"distribution":{"1":25,"2":32,"3":200,"4":215,"5":258},"scale":"1=Poor, 5=Great"},"Q21_what_could_be_better":{"n":57,"condition":"Q20=1 or 2","responses":["Need more rowing classes with instructors - please add more coach led content","Fix the app - it keeps crashing","Add more scenic rows - the ones we have are really low quality","Honestly, I found the 2025 updates confusing - it felt like things moved around and I couldn't find what I was looking for","The new home screen is harder to navigate than before","More variety in the game content. The games feel repetitive after a while","I was hoping for a proper training plan / program feature and it hasn't come yet","The updates feel minor. I expected more after waiting a year","App stability has been an issue - crashes mid workout","The new content is good but there isn't enough of it","I want more live classes - not just on demand","Fix the leaderboard - it's broken for me and has been for months","Need better filtering for workouts - searching is still too hard","The scenic content looks dated - needs upgrade","I feel like there should be a way to see my friends' progress on the app","Bluetooth connectivity is still unreliable","More strength / cross training content not just rowing","Need proper goal setting with milestones and reminders","The app redesign was confusing for the first month","The music selection in classes needs to be updated more frequently","More power plays content - that feature is underused","I couldn't find my old workout history after the update","The UI changes were not intuitive - took time to adjust","Need better sleep/recovery integration","More beginner-friendly programs","App loading times are too slow","I want better notifications for new content","Need Apple Watch integration","Better heart rate monitoring","The progress graphs are hard to read","I want challenges that last longer than a week","Need more content for older users - not everything should be high intensity","The scenic rows need 4K quality","More multiplayer options","Better social features - I want to follow other users","Need a proper rest day / recovery section","The home screen recommendations don't feel personalized","I want to be able to bookmark or save favourite workouts more easily","Better music sync with the workout","The new features aren't very visible - I discovered them by accident","Need a guided warmup and cooldown for every workout","More coach-led strength programs","The gamification elements need to be more engaging","Need better cross-device sync (phone + rower)","More content for the Fit Bike","The new workout filters are an improvement but still not great","I expected a major AI coaching feature - that hasn't happened yet","Need to be able to share workouts directly from the app","Better community features","The updates seem to be mainly for rowers - what about treadmill users?","Content variety has improved but quality is inconsistent","Need a dark mode for the app","The GLP-1 question was weird to include - felt off-brand","The app still doesn't remember my preferences","More virtual racing features","Need better stats and analytics","The new programs are too short"]},"Q22_fitness_goal":{"Improve overall fitness":{"n":306,"pct":41.9},"Lose weight / reduce body fat":{"n":184,"pct":25.2},"Build muscle / strength":{"n":124,"pct":17.0},"Improve endurance / cardio":{"n":82,"pct":11.2},"Improve mental health / reduce stress":{"n":20,"pct":2.7},"other":{"n":14,"pct":1.9}},"Q23_progress":{"Yes - some progress":{"n":400,"pct":54.8},"Yes - strong progress":{"n":234,"pct":32.1},"No - little to no progress":{"n":63,"pct":8.6},"Not sure":{"n":33,"pct":4.5}},"Q24_progress_visibility":{"mean":3.8,"distribution":{"1":42,"2":39,"3":178,"4":233,"5":238},"scale":"1=Not at all, 5=Very clearly"},"Q25_challenges":{"Finding time to work out consistently":{"n":315,"pct":43.2},"Staying motivated over time":{"n":302,"pct":41.4},"Knowing which workouts to choose for my goals":{"n":189,"pct":25.9},"Not enough structure or guidance":{"n":40,"pct":5.5},"Not enough variety in workouts":{"n":39,"pct":5.3},"Not personalized enough":{"n":37,"pct":5.1},"Other":{"n":108,"pct":14.8}},"Q26_motivators":{"Weight or body composition changes":{"n":313,"pct":42.9},"Getting stronger physically":{"n":272,"pct":37.3},"Improving cardiovascular health":{"n":234,"pct":32.1},"Challenges\/Streaks\/Leaderboards":{"n":217,"pct":29.7},"Setting distance records":{"n":34,"pct":4.7},"Setting speed records":{"n":25,"pct":3.4},"Other":{"n":26,"pct":3.6}},"Q27_tracking_app":{"Aviron":{"n":227,"pct":31.1},"Apple Health \/ Google Health":{"n":202,"pct":27.7},"My scale or mirror":{"n":82,"pct":11.2},"I don't really track progress anywhere":{"n":68,"pct":9.3},"Garmin \/ Whoop \/ Fitbit \/ Oura":{"n":94,"pct":12.9},"Strava":{"n":11,"pct":1.5},"other":{"n":46,"pct":6.3}},"Q28_sharing":{"I don't share my progress":{"n":535,"pct":73.3},"With friends or family directly":{"n":129,"pct":17.7},"Social media":{"n":38,"pct":5.2},"Fitness communities (e.g. Strava)":{"n":20,"pct":2.7},"Group chats":{"n":3,"pct":0.4},"other":{"n":5,"pct":0.7}},"Q29_what_shared":{"n":193,"condition":"Q28 != dont share","responses":["That I had lost ten pounds and I've been rowing a few times a week","I hit a personal best on the 2000m","I completed 30 days in a row","Shared my calorie burn for the day","Told my friend I finally beat my 5k time","Posted my milestone badge on Instagram","I shared that I've been consistent for 3 months","Showed my spouse my heart rate improvement","Told my workout buddy about my new distance record","I posted my 100-day streak","My weight loss progress - down 15 lbs","Shared a screenshot of my leaderboard ranking","I told my sister I finally enjoy working out","Posted about hitting my 500 calorie goal","Shared that I rowed my first full hour","I showed my friend the game I was playing","Texted my coach my week's summary","Posted my transformation photo - 6 months with Aviron","I shared my challenge completion badge","Told family I've been working out every day for 2 weeks"]},"Q30_pre_workout_behavior":{"I browse for a few minutes, then decide":{"n":211,"pct":28.9},"I usually repeat workouts I've done before":{"n":210,"pct":28.8},"I know exactly what I want to do":{"n":178,"pct":24.4},"I often feel unsure what to choose":{"n":66,"pct":9.0},"I rely on recommendations or prompts":{"n":36,"pct":4.9},"I search the Group Workout Lobby and join a workout":{"n":29,"pct":4.0}},"Q31_struggle_to_find_workout":{"mean":2.5,"distribution":{"1":158,"2":210,"3":226,"4":108,"5":28},"scale":"1=Never, 5=Always"},"Q32_cant_find_workout":{"Repeat a workout I already know":{"n":171,"pct":47.2},"Play a game":{"n":66,"pct":18.2},"Choose something random":{"n":60,"pct":16.6},"Use Metrics Monitor":{"n":29,"pct":8.0},"other":{"n":25,"pct":6.9},"Leave the machine":{"n":11,"pct":3.0}},"Q33_knows_monthly_content":{"Yes":{"n":460,"pct":63.0},"No":{"n":270,"pct":37.0}},"Q34_how_find_content":{"I notice them on the home screen":{"n":298,"pct":40.8},"Through email":{"n":251,"pct":34.4},"I don't usually notice new content":{"n":147,"pct":20.1},"Through community or social channels":{"n":34,"pct":4.7}},"Q35_try_new_content":{"I'll try it within a few weeks":{"n":279,"pct":47.9},"I usually stick to my usual workouts":{"n":113,"pct":19.4},"I rarely try new content":{"n":107,"pct":18.4},"I try it right away":{"n":84,"pct":14.4}},"Q36_content_quality":{"mean":3.88,"distribution":{"1":16,"2":17,"3":218,"4":268,"5":211},"scale":"1=Poor, 5=Excellent"},"Q37_improve_one_thing":{"Better Virtual \/ Scenic workouts":{"n":164,"pct":22.5},"Better progress tracking":{"n":125,"pct":17.1},"Better workout recommendations":{"n":121,"pct":16.6},"Better social and multiplayer features":{"n":83,"pct":11.4},"Better Guided Workouts":{"n":82,"pct":11.2},"Better Structured Programs":{"n":68,"pct":9.3},"Better Coached Classes":{"n":53,"pct":7.3},"Better Power Plays":{"n":34,"pct":4.7}},"Q38_what_specifically_change":{"n":712},"Q39_magic_wand":{"n":716},"Q40_followup_interest":{"Product-related interview":{"n":380,"pct":52.1},"No":{"n":318,"pct":43.6},"Marketing-related interview":{"n":208,"pct":28.5},"Testimonial video or quote":{"n":134,"pct":18.4}},"open_comments":{"n":432}}
+</script>
+
+<!-- ── Password Gate ── -->
+<div id="gate">
+  <div class="gate-card" id="gate-card">
+    <div class="gate-logo">A</div>
+    <h2>Survey Intel</h2>
+    <p>This tool is for internal Aviron use only.<br>Enter the team password to continue.</p>
+    <div class="gate-input-wrap">
+      <input type="password" id="gate-input" placeholder="Enter password" autocomplete="off" />
+      <button id="toggle-pw" title="Show/hide">👁</button>
+    </div>
+    <button id="gate-btn">Unlock →</button>
+    <div id="gate-error"></div>
+    <p class="gate-hint">Aviron Internal · Feb 2026 Survey · 730 Responses</p>
+  </div>
+</div>
+
+<!-- ── Main App ── -->
+<div id="app">
+  <header>
+    <div class="logo-mark">A</div>
+    <div class="header-text">
+      <h1>Survey Intel</h1>
+      <p>Aviron Product Survey — Feb 2026 · 730 responses</p>
+    </div>
+    <span class="badge">Internal</span>
+  </header>
+
+  <div id="chat">
+    <div class="msg ai">
+      <div class="avatar ai">A</div>
+      <div class="bubble">
+        <div class="welcome">
+          <h2>Ask <em>anything</em> about the survey</h2>
+          <p>I have the complete results from Aviron's February 2026 product survey. Ask me about any question, segment, trend, or customer quote — I'll dig into the data for you.</p>
+          <div class="stats-row">
+            <div class="stat"><div class="stat-n">730</div><div class="stat-l">Total responses</div></div>
+            <div class="stat"><div class="stat-n">40</div><div class="stat-l">Questions covered</div></div>
+            <div class="stat"><div class="stat-n">88.5%</div><div class="stat-l">Would recommend</div></div>
+            <div class="stat"><div class="stat-n">3.89</div><div class="stat-l">2025 update score /5</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="suggestions">
+    <p>Try asking</p>
+    <div class="chips">
+      <button class="chip">What are the top complaints from unhappy users?</button>
+      <button class="chip">Who is our typical customer demographically?</button>
+      <button class="chip">What's the #1 requested magic wand feature?</button>
+      <button class="chip">Why are non-members not paying?</button>
+      <button class="chip">How do users discover new content?</button>
+      <button class="chip">What motivates people most to work out?</button>
+      <button class="chip">Summarize Q37 improvement priorities</button>
+      <button class="chip">GLP-1 breakdown</button>
+    </div>
+  </div>
+
+  <div id="input-area">
+    <div class="input-row">
+      <textarea id="msg-input" placeholder="Ask about the survey data…" rows="1"></textarea>
+      <button id="send-btn" title="Send">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/>
+        </svg>
+      </button>
+    </div>
+    <p class="hint">Powered by Claude · Aviron Internal Tool</p>
+  </div>
+</div>
+
+<script>
+// ── Config (baked in) ─────────────────────────────────────────────────────────
+const API_KEY  = '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';
+const PASSWORD = 'aviron2026';
+
+// ── Data ──────────────────────────────────────────────────────────────────────
+const SURVEY_DATA = JSON.parse(document.getElementById('survey-json').textContent);
+
+// ── Password Gate ─────────────────────────────────────────────────────────────
+const gateEl    = document.getElementById('gate');
+const gateCard  = document.getElementById('gate-card');
+const gateInput = document.getElementById('gate-input');
+const gateBtnEl = document.getElementById('gate-btn');
+const gateError = document.getElementById('gate-error');
+const togglePw  = document.getElementById('toggle-pw');
+const appEl     = document.getElementById('app');
+
+// Auto-unlock if already authenticated this session
+if (sessionStorage.getItem('aviron_auth') === '1') unlock();
+
+function unlock() {
+  gateEl.style.display = 'none';
+  appEl.classList.add('visible');
+  setTimeout(() => msgInput && msgInput.focus(), 100);
+}
+
+function tryUnlock() {
+  const val = gateInput.value.trim();
+  if (val === PASSWORD) {
+    sessionStorage.setItem('aviron_auth', '1');
+    unlock();
+  } else {
+    gateError.textContent = 'Incorrect password. Try again.';
+    gateCard.classList.remove('shake');
+    void gateCard.offsetWidth; // reflow to restart animation
+    gateCard.classList.add('shake');
+    gateInput.value = '';
+    gateInput.focus();
+  }
+}
+
+gateBtnEl.addEventListener('click', tryUnlock);
+gateInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryUnlock(); });
+togglePw.addEventListener('click', () => {
+  gateInput.type = gateInput.type === 'password' ? 'text' : 'password';
+  togglePw.textContent = gateInput.type === 'password' ? '👁' : '🙈';
+});
+
+// ── System prompt ─────────────────────────────────────────────────────────────
+function buildSystemPrompt() {
+  return `You are an expert survey analyst for Aviron, a fitness equipment company. You have complete access to the results of Aviron's Product Survey from February 2026 (730 responses).
+
+The full survey data is embedded below as JSON. Use it to answer every question with specific numbers, percentages, and direct quotes from open-text responses where available.
+
+SURVEY DATA:
+${JSON.stringify(SURVEY_DATA, null, 1)}
+
+QUESTION REFERENCE:
+Q1=Age, Q2=Gender, Q3=Marital, Q4=Parent, Q5=Income, Q6=Ownership type
+Q7=Purchase driver (content vs hardware), Q8=Would recommend (NPS proxy), Q9=Weight loss
+Q10=Brand standout vs competitors, Q11=Science-backed perception, Q12=Fitness Entertainment leader, Q13=Tagline resonance
+Q14=GLP-1 sentiment, Q15=Products owned (multi-select), Q16=Usage duration, Q17=Usage frequency
+Q18=Active membership (1=Yes 0=No), Q19=No-membership reasons (base n=107, conditional on Q18=No)
+Q20=2025 updates rating 1-5, Q21=What could be better (conditional: only Q20=1 or 2, n=57)
+Q22=Primary fitness goal, Q23=Progress perception, Q24=Progress visibility rating 1-5
+Q25=Biggest challenges (multi-select), Q26=Key motivators (multi-select)
+Q27=Fitness tracking app, Q28=Where they share progress, Q29=What they shared (conditional: only if Q28 != don't share, n=193)
+Q30=Pre-workout behavior, Q31=Struggle to find workouts 1-5, Q32=When can't find workout
+Q33=Aware of monthly new content, Q34=How discover content, Q35=Likelihood to try new content
+Q36=Content quality rating 1-5, Q37=Top improvement area, Q38=What specifically to change (n=712 open text)
+Q39=Magic wand feature request (n=716 open text), Q40=Follow-up interview interest (multi-select)
+
+GUIDELINES:
+- Always cite specific numbers (n= and %) when answering
+- For open-text questions, quote actual responses and group into themes
+- Format answers with headers, bullets, and bold key figures for readability
+- Cross-reference questions when relevant (e.g. non-members + challenges)
+- For rating questions, interpret what the mean score means in context
+- Be direct and actionable — this is for an internal product/marketing team
+- If specific data doesn't exist for a question, say so clearly`;
+}
+
+// ── Chat state ────────────────────────────────────────────────────────────────
+let history   = [];
+let isLoading = false;
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const chat     = document.getElementById('chat');
+const msgInput = document.getElementById('msg-input');
+const sendBtn  = document.getElementById('send-btn');
+
+function scrollToBottom() {
+  setTimeout(() => { chat.scrollTop = chat.scrollHeight; }, 50);
+}
+
+function markdownToHtml(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*([^*\n]+?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^#{1,3} (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^[-•] (.+)$/gm,'<li>$1</li>')
+    .replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>[\s\S]*?<\/li>)/g, m => `<ul>${m}</ul>`)
+    .replace(/<\/ul>\s*<ul>/g,'')
+    .replace(/\n{2,}/g,'</p><p>')
+    .replace(/\n/g,'<br>')
+    .replace(/^([^<].+)$/gm, (m,p1) => p1.startsWith('<') ? m : `<p>${m}</p>`);
+}
+
+function addMessage(role, content, isRaw = false) {
+  const wrap = document.createElement('div');
+  wrap.className = `msg ${role}`;
+  const av  = document.createElement('div');
+  av.className = `avatar ${role}`;
+  av.textContent = role === 'ai' ? 'A' : 'ME';
+  const bub = document.createElement('div');
+  bub.className = 'bubble';
+  bub.innerHTML = isRaw ? content : markdownToHtml(content);
+  wrap.appendChild(av);
+  wrap.appendChild(bub);
+  chat.appendChild(wrap);
+  scrollToBottom();
+  return bub;
+}
+
+function addThinking() {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ai';
+  wrap.id = 'thinking';
+  wrap.innerHTML = `<div class="avatar ai">A</div><div class="bubble"><div class="dots"><span></span><span></span><span></span></div></div>`;
+  chat.appendChild(wrap);
+  scrollToBottom();
+}
+
+function removeThinking() {
+  const t = document.getElementById('thinking');
+  if (t) t.remove();
+}
+
+// ── Send ──────────────────────────────────────────────────────────────────────
+async function sendMessage(text) {
+  text = text.trim();
+  if (!text || isLoading) return;
+
+  document.getElementById('suggestions').style.display = 'none';
+
+  isLoading = true;
+  sendBtn.disabled = true;
+  msgInput.value = '';
+  msgInput.style.height = 'auto';
+
+  addMessage('user', text);
+  history.push({ role: 'user', content: text });
+  addThinking();
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2048,
+        system: buildSystemPrompt(),
+        messages: history
+      })
+    });
+
+    const data = await res.json();
+    removeThinking();
+
+    if (!res.ok) {
+      const msg = data?.error?.message || `API error ${res.status}`;
+      addMessage('ai', `<div class="error-bubble">⚠️ ${msg}</div>`, true);
+      history.pop();
+    } else {
+      const reply = data.content?.[0]?.text || '(no response)';
+      addMessage('ai', reply);
+      history.push({ role: 'assistant', content: reply });
+      if (history.length > 24) history = history.slice(-24);
+    }
+  } catch (err) {
+    removeThinking();
+    addMessage('ai', `<div class="error-bubble">⚠️ Network error: ${err.message}</div>`, true);
+    history.pop();
+  }
+
+  isLoading = false;
+  sendBtn.disabled = false;
+  msgInput.focus();
+}
+
+// ── Events ────────────────────────────────────────────────────────────────────
+sendBtn.addEventListener('click', () => sendMessage(msgInput.value));
+
+msgInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(msgInput.value); }
+});
+
+msgInput.addEventListener('input', () => {
+  msgInput.style.height = 'auto';
+  msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + 'px';
+});
+
+document.querySelectorAll('.chip').forEach(c => {
+  c.addEventListener('click', () => sendMessage(c.textContent));
+});
+</script>
+</body>
+</html>
